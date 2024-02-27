@@ -1,0 +1,78 @@
+#Project - Security Camera Detection Using Raspberry Pie 4, Motion Sensor and Camera + Sending Messages  
+
+#importing the necessary packages
+from gpiozero import Button, MotionSensor #for the button and the sensor
+from picamera import PiCamera #for the camera
+from time import sleep
+from signal import pause
+import smtplib #for sending the mail
+from email.mime.text import MIMEText #for sending the mail
+
+#creating objects fot the button, the motion sensor and the PiCamera
+button = Button(2)
+pir = MotionSensor(4)
+camera = PiCamera()
+
+#control variables for using the e-mail part
+motion_sensor_status = False
+email_sent = False
+#motion_det = False
+
+#starting the camera
+camera.rotation = 180
+camera.start_preview()
+
+#for naming the images
+i = 0
+
+#stopping the camera when the pushbutton is pressed
+def stop_the_camera():
+    camera.stop_preview()
+    #exit the program
+    exit()
+
+#taking photo when motion is detected
+def take_burglar_photo():
+    #the global variables
+    global email_sent
+    global motion_sensor_status
+    global i
+    i = i + 1
+    camera.capture('/home/pi/Desktop/image_%s.jpg' % i) #capturing the photos
+    print('A photo has been taken by the camera. Bad burglar.') #message displayed in the program when a photo is taken
+    #setting the variables
+    motion_sensor_status = True
+    email_sent = False
+    sleep(5)
+    #for sending the e-mail
+    if(motion_sensor_status == True and email_sent == False):
+        #variables for e-mail details
+        from_email_addr = 'andih2008@hotmail.com'
+        from_email_password = 'Sibiu789*'
+        to_email_addr = 'andih86@hotmail.com'
+        #the message for sending
+        body = 'Someone wants to steal the chocolate :('
+        msg = MIMEText(body)
+        #setting sender and recipient
+        msg['From'] = from_email_addr
+        msg['To'] = to_email_addr
+        #setting the email subject
+        msg['Subject'] = 'BURGLAR ALERT'
+        #the part with the protocol - the SMTP (Simple Mail Transfer Protocol) for hotmail/outlook
+        server = smtplib.SMTP('smtp.office365.com', 587)
+        #because hotmail/outlook use TLS (Transport Layer Security)
+        server.starttls()
+        #login
+        server.login(from_email_addr, from_email_password)
+        #starting the e-mail
+        server.sendmail(from_email_addr, to_email_addr, msg.as_string())
+        server.quit()
+        email_sent = True
+        print('The message has been sent')
+
+#the function for running when the button is pressed
+button.when_pressed = stop_the_camera
+#the function for running when motion is detected
+pir.when_motion = take_burglar_photo
+
+pause()
